@@ -16,21 +16,28 @@ class DrawingApp:
         self.canvas.mpl_connect("button_press_event", self.onclick)
         self.master.protocol("WM_DELETE_WINDOW", self.quit_app)
 
-        self.shape_type = None
+        self.shape_type = "Triangle"
         self.points = []
         self.radius = 0
 
         # import the model
         self.vqc = None
 
-        btn_triangle = tk.Button(master, text="Triangle", command=self.set_triangle)
-        btn_triangle.pack(side=tk.LEFT)
-        btn_square = tk.Button(master, text="Square", command=self.set_square)
-        btn_square.pack(side=tk.LEFT)
-        btn_circle = tk.Button(master, text="Circle", command=self.set_circle)
-        btn_circle.pack(side=tk.LEFT)
+        self.shape_var = tk.StringVar(value="Triangle")
+        self.shapes_dropdown = tk.OptionMenu(
+            master,
+            self.shape_var,
+            "Triangle",
+            "Square",
+            "Circle",
+            command=self.set_shape_from_dropdown,
+        )
+        self.shapes_dropdown.pack(side=tk.LEFT)
         btn_identify = tk.Button(master, text="Identify", command=self.on_identify)
         btn_identify.pack(side=tk.LEFT)
+
+        self.shape_label = tk.Label(master, text="", width=30)
+        self.shape_label.pack(side=tk.LEFT, padx=10)
 
         self.configure_plot()
 
@@ -40,6 +47,14 @@ class DrawingApp:
     def quit_app(self):
         self.master.quit()  # Stop the main loop
         self.master.destroy()  # Destroy the main window
+
+    def set_shape_from_dropdown(self, value):
+        if value == "Triangle":
+            self.set_triangle()
+        elif value == "Square":
+            self.set_square()
+        elif value == "Circle":
+            self.set_circle()
 
     def set_triangle(self):
         self.shape_type = "Triangle"
@@ -63,7 +78,12 @@ class DrawingApp:
             self.clear_plot()
 
     def onclick(self, event):
-        x, y = round(event.xdata), round(event.ydata)
+        x, y = 0, 0
+        try:
+            x, y = round(event.xdata), round(event.ydata)
+        except:
+            print("Invalid point")
+            return
 
         if self.shape_type == "Circle" and len(self.points) == 1:
             self.radius = int(
@@ -117,11 +137,17 @@ class DrawingApp:
 
         prediction = self.vqc.predict(target)
         if prediction == 0:
-            print("Triangle")
+            self.shape_label.config(
+                text="Prediction: Triangle, Actual: " + self.shape_type
+            )
         elif prediction == 1:
-            print("Square")
+            self.shape_label.config(
+                text="Prediction: Square, Actual: " + self.shape_type
+            )
         elif prediction == 2:
-            print("Circle")
+            self.shape_label.config(
+                text="Prediction: Circle, Actual: " + self.shape_type
+            )
 
         self.points.clear()
         self.radius = 0
