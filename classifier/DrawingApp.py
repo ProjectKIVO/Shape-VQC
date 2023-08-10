@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
+from qiskit_machine_learning.algorithms.classifiers import VQC
+import numpy as np
 
 
 class DrawingApp:
@@ -18,16 +20,22 @@ class DrawingApp:
         self.points = []
         self.radius = 0
 
+        # import the model
+        self.vqc = None
+
         btn_triangle = tk.Button(master, text="Triangle", command=self.set_triangle)
         btn_triangle.pack(side=tk.LEFT)
         btn_square = tk.Button(master, text="Square", command=self.set_square)
         btn_square.pack(side=tk.LEFT)
         btn_circle = tk.Button(master, text="Circle", command=self.set_circle)
         btn_circle.pack(side=tk.LEFT)
-        btn_save = tk.Button(master, text="Save", command=self.on_save)
-        btn_save.pack(side=tk.LEFT)
+        btn_identify = tk.Button(master, text="Identify", command=self.on_identify)
+        btn_identify.pack(side=tk.LEFT)
 
         self.configure_plot()
+
+    def load_model(self, vqc):
+        self.vqc = vqc
 
     def quit_app(self):
         self.master.quit()  # Stop the main loop
@@ -48,10 +56,10 @@ class DrawingApp:
         self.clear_plot()
         print("Switched to Circle mode")
 
-    def on_save(self):
+    def on_identify(self):
         if self.shape_type:
             label = self.get_label()
-            self.save(label)
+            self.identify(label)
             self.clear_plot()
 
     def onclick(self, event):
@@ -88,7 +96,7 @@ class DrawingApp:
         }
         return labels.get(self.shape_type, -1)
 
-    def save(self, label):
+    def identify(self, label):
         if self.shape_type == "Circle":
             coords = [*self.points[0], self.radius, 0, 0, 0, 0, 0]
         else:
@@ -97,7 +105,23 @@ class DrawingApp:
                 coords.extend([0, 0])
 
         coords.append(label)
-        print(",".join(map(str, coords)) + "\n")
+
+        # create target and label
+        data = list(map(int, map(str, coords)))
+        target = np.array(data[:-1])
+        label = np.array(data[-1])
+
+        if len(target) != 8:
+            print("Invalid shape")
+            return
+
+        prediction = self.vqc.predict(target)
+        if prediction == 0:
+            print("Triangle")
+        elif prediction == 1:
+            print("Square")
+        elif prediction == 2:
+            print("Circle")
 
         self.points.clear()
         self.radius = 0
