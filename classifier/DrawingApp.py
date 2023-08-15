@@ -19,6 +19,7 @@ class DrawingApp:
         self.shape_type = "Triangle"
         self.points = []
         self.radius = 0
+        self.shape_completed = False
 
         # import the model
         self.vqc = None
@@ -28,7 +29,7 @@ class DrawingApp:
             master,
             self.shape_var,
             "Triangle",
-            "Square",
+            "Quadrilateral",
             "Circle",
             command=self.set_shape_from_dropdown,
         )
@@ -51,22 +52,25 @@ class DrawingApp:
     def set_shape_from_dropdown(self, value):
         if value == "Triangle":
             self.set_triangle()
-        elif value == "Square":
-            self.set_square()
+        elif value == "Quadrilateral":
+            self.set_quadrilateral()
         elif value == "Circle":
             self.set_circle()
 
     def set_triangle(self):
+        self.shape_completed = False
         self.shape_type = "Triangle"
         self.clear_plot()
         print("Switched to Triangle mode")
 
-    def set_square(self):
-        self.shape_type = "Square"
+    def set_quadrilateral(self):
+        self.shape_completed = False
+        self.shape_type = "Quadrilateral"
         self.clear_plot()
-        print("Switched to Square mode")
+        print("Switched to Quadrilateral mode")
 
     def set_circle(self):
+        self.shape_completed = False
         self.shape_type = "Circle"
         self.clear_plot()
         print("Switched to Circle mode")
@@ -78,6 +82,9 @@ class DrawingApp:
             self.clear_plot()
 
     def onclick(self, event):
+        if self.shape_completed:  # Check if shape is already completed
+            return
+
         x, y = 0, 0
         try:
             x, y = round(event.xdata), round(event.ydata)
@@ -92,16 +99,26 @@ class DrawingApp:
             self.draw_shape()
         else:
             self.points.append((x, y))
+            self.draw_temporary_shape()  # Draw temporary shape for visual feedback
 
             if (self.shape_type == "Triangle" and len(self.points) == 3) or (
-                self.shape_type == "Square" and len(self.points) == 4
+                self.shape_type == "Quadrilateral" and len(self.points) == 4
             ):
                 self.draw_shape()
 
+    def draw_temporary_shape(self):
+        if len(self.points) > 1:
+            for i in range(len(self.points) - 1):
+                self.ax.plot(*zip(*self.points[i : i + 2]), color="grey")
+        if len(self.points) > 0:
+            self.ax.scatter(*self.points[-1], color="red", s=50)
+        self.canvas.draw()
+
     def draw_shape(self):
+        self.shape_completed = True
         if self.shape_type == "Triangle":
             self.ax.fill(*zip(*self.points), color="black")
-        elif self.shape_type == "Square":
+        elif self.shape_type == "Quadrilateral":
             self.ax.fill(*zip(*self.points), color="black")
         elif self.shape_type == "Circle":
             circle = plt.Circle(self.points[0], self.radius, color="black")
@@ -111,7 +128,7 @@ class DrawingApp:
     def get_label(self):
         labels = {
             "Triangle": 0,
-            "Square": 1,
+            "Quadrilateral": 1,
             "Circle": 2,
         }
         return labels.get(self.shape_type, -1)
@@ -142,7 +159,7 @@ class DrawingApp:
             )
         elif prediction == 1:
             self.shape_label.config(
-                text="Prediction: Square, Actual: " + self.shape_type
+                text="Prediction: Quadrilateral, Actual: " + self.shape_type
             )
         elif prediction == 2:
             self.shape_label.config(
@@ -153,6 +170,7 @@ class DrawingApp:
         self.radius = 0
 
     def clear_plot(self):
+        self.shape_completed = False
         self.ax.clear()
         self.configure_plot()
         self.points.clear()
